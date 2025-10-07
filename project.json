@@ -1,0 +1,63 @@
+{
+  "file": "index.html",
+  "general": {
+    "properties": {
+      "barColor": {
+        "index": 2,
+        "order": 102,
+        "text": "Bar Color",
+        "type": "color",
+        "value": "0 0 0"
+      },
+      "barShadow": {
+        "index": 3,
+        "order": 103,
+        "text": "Bar Shadow",
+        "type": "color",
+        "value": "0 0 0"
+      },
+      "bg": {
+        "fileType": "image",
+        "index": 0,
+        "order": 100,
+        "text": "Background Image",
+        "type": "file",
+        "value": ""
+      },
+      "bgOffsetY": {
+        "fraction": false,
+        "index": 1,
+        "max": 1024,
+        "min": -1024,
+        "order": 101,
+        "text": "Background Image Y Offset",
+        "type": "slider",
+        "value": 0
+      },
+      "dateColor": {
+        "index": 4,
+        "order": 104,
+        "text": "Date Color",
+        "type": "color",
+        "value": "0 0 0"
+      },
+      "dateShadow": {
+        "index": 5,
+        "order": 105,
+        "text": "Date Shadow",
+        "type": "color",
+        "value": "0 0 0"
+      },
+      "schemecolor": {
+        "order": 0,
+        "text": "ui_browse_properties_scheme_color",
+        "type": "color",
+        "value": "0 0 0"
+      }
+    },
+    "supportsaudioprocessing": true
+  },
+  "title": "akane-wallpaper",
+  "type": "web",
+  "version": 0
+}
