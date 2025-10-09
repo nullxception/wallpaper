@@ -325,3 +325,4 @@ initAudioBuffer();
 updateDate();
 updateStyles();
 requestAnimationFrame(draw);
+setInterval(updateDate, 60000);
