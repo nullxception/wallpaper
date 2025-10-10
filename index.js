@@ -1,18 +1,8 @@
-const canvas = document.getElementById("visualizer");
-const background = document.getElementById("background");
-const weekdayElement = document.getElementById("weekday");
-const dateElement = document.getElementById("date");
-const canvasWidth = window.innerWidth;
-const canvasHeight = window.innerHeight;
-canvas.width = canvasWidth;
-canvas.height = canvasHeight;
-
-const ctx = canvas.getContext("2d");
-const offscreenCanvas = new OffscreenCanvas(canvasWidth, canvasHeight);
-const offscreenCtx = offscreenCanvas.getContext("2d");
-const backgroundStyle = background.style;
-const weekdayStyle = weekdayElement.style;
-const dateStyle = dateElement.style;
+const vis = document.getElementById("visualizer");
+const wall = document.getElementById("background");
+const dateTime = document.getElementById("dateTimeContainer");
+const weekdayText = document.getElementById("weekday");
+const dateText = document.getElementById("date");
 
 const days = [
     "Sunday",
@@ -57,68 +47,66 @@ const equalizerSettings = {
 
 const state = {
     fps: 30,
-    audioData: [],
+    audio: [],
     lastTime: 0,
     hasAudio: false,
-    lastRotationAngle: 0,
+    lastSwingAngle: 0,
     bassIntensity: 0,
     last: performance.now() / 1000,
     fpsThreshold: 0,
     scale: 1,
     date: null,
+    width: window.innerWidth,
+    height: window.innerHeight,
 };
 
 const ecolor = {
     asHex: (color) => {
-        var customColor = color.split(" ");
-        customColor = customColor.map(function (c) {
-            return Math.ceil(c * 255)
-                .toString(16)
-                .padStart(2, "0");
-        });
-        return "#" + customColor.join("");
+        const c = color
+            .split(" ")
+            .map(function (it) {
+                return Math.ceil(it * 255)
+                    .toString(16)
+                    .padStart(2, "0");
+            })
+            .join("");
+        return "#" + c;
     },
     asShadow: (color) => {
-        var customColor = color.split(" ");
-        customColor = customColor.map(function (c) {
-            return Math.ceil(c * 255);
-        });
-        return [...customColor];
+        const c = color.split(" ").map((it) => Math.ceil(it * 255));
+        return [...c];
     },
 };
 
-function initAudioBuffer() {
-    state.audioData = new Array(conf.barCount).fill(0);
-}
 const listener = {
     audio: (samples) => {
-        initAudioBuffer();
+        state.audio = new Array(conf.barCount).fill(0);
         for (let i = 0; i < conf.barCount; i++) {
-            state.audioData[i] = samples[i] > 0.01 ? samples[i] : 0;
+            state.audio[i] = samples[i] > 0.01 ? samples[i] : 0;
         }
     },
-    properties: (properties) => {
-        if (properties.barColor) {
-            conf.barColor = ecolor.asHex(properties.barColor.value);
+    properties: (props) => {
+        if (props.barColor) {
+            conf.barColor = ecolor.asHex(props.barColor.value);
         }
-        if (properties.barShadow) {
-            conf.barShadowColor = ecolor.asShadow(properties.barShadow.value);
-        }
-
-        if (properties.dateColor) {
-            conf.dateColor = ecolor.asHex(properties.dateColor.value);
+        if (props.barShadow) {
+            conf.barShadowColor = ecolor.asShadow(props.barShadow.value);
         }
 
-        if (properties.dateShadow) {
-            conf.dateShadowColor = ecolor.asShadow(properties.dateShadow.value);
+        if (props.dateColor) {
+            conf.dateColor = ecolor.asHex(props.dateColor.value);
         }
 
-        if (properties.bgOffsetY) {
-            conf.bgOffsetY = properties.bgOffsetY.value;
+        if (props.dateShadow) {
+            conf.dateShadowColor = ecolor.asShadow(props.dateShadow.value);
         }
 
-        if (properties.bg) {
-            conf.bg = properties.bg.value;
+        if (props.bgOffsetY) {
+            conf.bgOffsetY = props.bgOffsetY.value;
+        }
+
+        if (props.bg) {
+            conf.bg = props.bg.value;
         }
 
         updateStyles();
@@ -135,17 +123,21 @@ function updateDate() {
         return;
     }
 
-    weekdayElement.textContent = days[today.getDay()];
+    weekdayText.textContent = days[today.getDay()];
 
     const options = { year: "numeric", month: "long", day: "numeric" };
-    dateElement.textContent = today.toLocaleDateString("en-US", options);
+    dateText.textContent = today.toLocaleDateString("en-US", options);
 }
 
-function updateVisualizerBars() {
+const ctx = vis.getContext("2d");
+const offscreenCanvas = new OffscreenCanvas(state.width, state.height);
+const offscreenCtx = offscreenCanvas.getContext("2d");
+
+function updateVisualizer() {
     const barWidth = conf.barThickness;
     const spacing = conf.barSpacing;
     const totalBarsWidth = conf.barCount * (barWidth + spacing) - spacing;
-    let x = (canvasWidth - totalBarsWidth) / 2 + spacing / 2;
+    let x = (state.width - totalBarsWidth) / 2 + spacing / 2;
     state.bassIntensity = 0;
     state.hasAudio = false;
     const segmentSize = conf.barCount / 8;
@@ -154,10 +146,7 @@ function updateVisualizerBars() {
     for (let i = 0; i < conf.barCount; i++) {
         let eqIndex = Math.floor(i / segmentSize) + 1;
         let eqFactor = equalizerSettings[`band${eqIndex}`] || 1;
-        let targetHeight = Math.max(
-            state.audioData[i] * maxHeight * eqFactor,
-            0,
-        );
+        let targetHeight = Math.max(state.audio[i] * maxHeight * eqFactor, 0);
 
         let currentHeight = lerp(
             offscreenCtx.currentHeights
@@ -172,8 +161,8 @@ function updateVisualizerBars() {
             offscreenCtx.fillStyle = conf.barColor;
             offscreenCtx.globalAlpha = conf.barOpacity;
             const glowStrength =
-                100 * Math.min(Math.abs(state.audioData[i]) * 2, 1);
-            offscreenCtx.shadowColor = `rgb(${conf.barShadowColor[0]} ${conf.barShadowColor[1]} ${conf.barShadowColor[2]} / ${glowStrength}%)`;
+                100 * Math.min(Math.abs(state.audio[i]) * 2, 1);
+            offscreenCtx.shadowColor = `rgb(${conf.barShadowColor.join(" ")} / ${glowStrength}%)`;
             offscreenCtx.shadowOffsetX = 0;
             offscreenCtx.shadowOffsetY = 0;
             offscreenCtx.shadowBlur = 20;
@@ -181,7 +170,7 @@ function updateVisualizerBars() {
             offscreenCtx.beginPath();
             offscreenCtx.roundRect(
                 x,
-                canvas.height / 2 - currentHeight / 2 + conf.yOffset,
+                vis.height / 2 - currentHeight / 2 + conf.yOffset,
                 barWidth,
                 currentHeight,
                 conf.barRoundness,
@@ -197,57 +186,50 @@ function updateVisualizerBars() {
 
         x += barWidth + spacing;
         if (i < conf.barCount / 4) {
-            state.bassIntensity += Math.abs(state.audioData[i]);
+            state.bassIntensity += Math.abs(state.audio[i]);
         }
     }
     state.bassIntensity /= conf.barCount / 4;
 }
 
-function updateGlowEffect() {
+function updateShadow() {
     const intensity = state.bassIntensity;
-    const glowStrength = Math.min(intensity * 2, 1);
-    const glowColor = `rgba(${conf.dateShadowColor.join(
-        ",",
-    )}, ${glowStrength})`;
+    const strength = Math.min(intensity * 2, 1);
+    const color = `rgb(${conf.dateShadowColor.join(" ")} / ${strength})`;
+    const size = Math.min(intensity * 30, 30);
+    const shadow = [
+        `0 0 ${size}px ${color}`,
+        `0 0 ${size * 2}px ${color}`,
+        `0 0 ${size * 3}px ${color}`,
+    ].join(",");
 
-    const shadowSize = Math.min(intensity * 30, 30);
-    const newShadow = `0 0 ${shadowSize}px ${glowColor}, 0 0 ${
-        shadowSize * 2
-    }px ${glowColor}, 0 0 ${shadowSize * 3}px ${glowColor}`;
-
-    if (weekdayStyle.textShadow !== newShadow) {
-        weekdayStyle.textShadow = newShadow;
-        dateStyle.textShadow = newShadow;
+    if (dateTime.style.textShadow !== shadow) {
+        dateTime.style.textShadow = shadow;
     }
 }
 
 function updateStyles() {
-    if (conf.bg === "") {
-        background.style.backgroundImage = null;
-    } else {
-        background.style.backgroundImage = `url('file:///${conf.bg}')`;
-    }
-
-    background.style.backgroundPosition = `center ${conf.bgOffsetY}px`;
-    dateElement.style.color = conf.dateColor;
-    weekdayElement.style.color = conf.dateColor;
+    vis.width = state.width;
+    vis.height = state.height;
+    wall.style.backgroundImage =
+        conf.bg === "" ? null : `url('file:///${conf.bg}')`;
+    wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
+    dateTime.style.color = conf.dateColor;
 }
 
 function transformElements(time) {
-    const newScale =
-        state.scale +
-        (1 + state.bassIntensity * conf.zoomFactor - state.scale) * 0.1;
+    var scale = state.scale;
+    scale += (1 + state.bassIntensity * conf.zoomFactor - state.scale) * 0.1;
 
     if (state.hasAudio) {
         state.lastTime = time;
-
-        if (state.lastRotationAngle < 0) {
-            state.lastRotationAngle = 0;
-        } else if (state.lastRotationAngle > conf.rotationFactor) {
-            state.lastRotationAngle = conf.rotationFactor;
+        if (state.lastSwingAngle < 0) {
+            state.lastSwingAngle = 0;
+        } else if (state.lastSwingAngle > conf.rotationFactor) {
+            state.lastSwingAngle = conf.rotationFactor;
         }
 
-        state.lastRotationAngle +=
+        state.lastSwingAngle +=
             Math.sin(
                 ((time % conf.rotationSpeedMs) / conf.rotationSpeedMs) *
                     (2 * Math.PI),
@@ -256,29 +238,21 @@ function transformElements(time) {
             ((conf.rotationFactor / Math.PI) * 2);
     }
 
-    if (state.hasAudio || state.lastRotationAngle !== 0) {
-        let newTransform = `scale(${newScale}) rotate(${state.lastRotationAngle}deg)`;
-        if (newScale <= 1) {
-            newTransform = "rotate(0deg)";
-        }
-        if (background.style.transform !== newTransform) {
-            background.style.transform = newTransform;
-            state.scale = newScale;
-        }
-
-        const zoomedTextTransform = `scale(${1 / newScale})`;
-        if (weekdayElement.style.transform !== zoomedTextTransform) {
-            weekdayElement.style.transform = zoomedTextTransform;
-        }
-        if (dateElement.style.transform !== zoomedTextTransform) {
-            dateElement.style.transform = zoomedTextTransform;
+    if (state.hasAudio || state.lastSwingAngle !== 0) {
+        if (scale <= 1) {
+            wall.style.setProperty("--rotate", "0deg");
+        } else {
+            wall.style.setProperty("--rotate", state.lastSwingAngle + "deg");
+            wall.style.setProperty("--scale", scale);
+            state.scale = scale;
         }
 
-        const zoomedVisualizer = `translate(-50%, -50%) scale(${
-            newScale * 0.7
-        })`;
-        if (canvas.style.transform !== zoomedVisualizer) {
-            canvas.style.transform = zoomedVisualizer;
+        if (getComputedStyle(dateTime).getPropertyValue("--scale") !== scale) {
+            dateTime.style.setProperty("--scale", scale);
+        }
+
+        if (getComputedStyle(vis).getPropertyValue("--scale") !== scale) {
+            vis.style.setProperty("--scale", scale);
         }
     }
 }
@@ -299,11 +273,11 @@ function draw(time) {
     }
 
     offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-    updateVisualizerBars();
+    updateVisualizer();
     transformElements(time);
-    updateGlowEffect();
+    updateShadow();
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, vis.width, vis.height);
     ctx.drawImage(offscreenCanvas, 0, 0);
 }
 
@@ -314,14 +288,13 @@ window.wallpaperPropertyListener = {
         }
     },
     setPaused: (isPaused) => {
-        canvas.style.visibility = isPaused ? "hidden" : "visible";
+        vis.style.visibility = isPaused ? "hidden" : "visible";
     },
     applyUserProperties: listener.properties,
 };
 
 window.wallpaperRegisterAudioListener(listener.audio);
 
-initAudioBuffer();
 updateDate();
 updateStyles();
 requestAnimationFrame(draw);
