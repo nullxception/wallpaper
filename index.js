@@ -17,8 +17,9 @@ const days = [
 const conf = {
     bg: "",
     bgOffsetY: 0,
+    fgColor: [0, 0, 0],
+    fgShadowColor: [255, 255, 255],
     barOpacity: 0.75,
-    barColor: "#000000",
     zoomFactor: 0.25,
     rotationFactor: 6,
     rotationSpeedMs: 5000,
@@ -28,9 +29,6 @@ const conf = {
     yOffset: 0,
     barThickness: 12,
     barRoundness: 14,
-    barShadowColor: [0, 0, 0],
-    dateColor: "#000000",
-    dateShadowColor: [0, 0, 0],
     monitorChanges: false,
 };
 
@@ -60,23 +58,10 @@ const state = {
     height: window.innerHeight,
 };
 
-const ecolor = {
-    asHex: (color) => {
-        const c = color
-            .split(" ")
-            .map(function (it) {
-                return Math.ceil(it * 255)
-                    .toString(16)
-                    .padStart(2, "0");
-            })
-            .join("");
-        return "#" + c;
-    },
-    asShadow: (color) => {
-        const c = color.split(" ").map((it) => Math.ceil(it * 255));
-        return [...c];
-    },
-};
+function parseEngineColor(color) {
+    const c = color.split(" ").map((it) => Math.ceil(it * 255));
+    return [...c];
+}
 
 const listener = {
     audio: (samples) => {
@@ -86,19 +71,12 @@ const listener = {
         }
     },
     properties: (props) => {
-        if (props.barColor) {
-            conf.barColor = ecolor.asHex(props.barColor.value);
-        }
-        if (props.barShadow) {
-            conf.barShadowColor = ecolor.asShadow(props.barShadow.value);
+        if (props.fgColor) {
+            conf.fgColor = parseEngineColor(props.fgColor.value);
         }
 
-        if (props.dateColor) {
-            conf.dateColor = ecolor.asHex(props.dateColor.value);
-        }
-
-        if (props.dateShadow) {
-            conf.dateShadowColor = ecolor.asShadow(props.dateShadow.value);
+        if (props.fgShadowColor) {
+            conf.fgShadowColor = parseEngineColor(props.fgShadowColor.value);
         }
 
         if (props.bgOffsetY) {
@@ -133,6 +111,13 @@ const ctx = vis.getContext("2d");
 const offscreenCanvas = new OffscreenCanvas(state.width, state.height);
 const offscreenCtx = offscreenCanvas.getContext("2d");
 
+function createShadow(intensity) {
+    const strength = Math.min(intensity * 2, 1);
+    const color = conf.fgShadowColor.join(" ");
+    const size = Math.min(intensity * 30, 30) * (2 * strength);
+    return { size, color, strength };
+}
+
 function updateVisualizer() {
     const barWidth = conf.barThickness;
     const spacing = conf.barSpacing;
@@ -155,17 +140,21 @@ function updateVisualizer() {
             targetHeight,
             0.35,
         );
+        x += barWidth + spacing;
+        if (i < conf.barCount / 4) {
+            state.bassIntensity += Math.abs(state.audio[i]);
+        }
 
         if (currentHeight > 1) {
             state.hasAudio = true;
-            offscreenCtx.fillStyle = conf.barColor;
+            offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
             offscreenCtx.globalAlpha = conf.barOpacity;
-            const glowStrength =
-                100 * Math.min(Math.abs(state.audio[i]) * 2, 1);
-            offscreenCtx.shadowColor = `rgb(${conf.barShadowColor.join(" ")} / ${glowStrength}%)`;
+            const intensity = Math.abs(state.audio[i]);
+            const { size, color, strength } = createShadow(intensity);
+            offscreenCtx.shadowColor = `rgb(${color} / ${strength})`;
             offscreenCtx.shadowOffsetX = 0;
             offscreenCtx.shadowOffsetY = 0;
-            offscreenCtx.shadowBlur = 20;
+            offscreenCtx.shadowBlur = size;
 
             offscreenCtx.beginPath();
             offscreenCtx.roundRect(
@@ -183,25 +172,13 @@ function updateVisualizer() {
             offscreenCtx.currentHeights = [];
         }
         offscreenCtx.currentHeights[i] = currentHeight;
-
-        x += barWidth + spacing;
-        if (i < conf.barCount / 4) {
-            state.bassIntensity += Math.abs(state.audio[i]);
-        }
     }
     state.bassIntensity /= conf.barCount / 4;
 }
 
 function updateShadow() {
-    const intensity = state.bassIntensity;
-    const strength = Math.min(intensity * 2, 1);
-    const color = `rgb(${conf.dateShadowColor.join(" ")} / ${strength})`;
-    const size = Math.min(intensity * 30, 30);
-    const shadow = [
-        `0 0 ${size}px ${color}`,
-        `0 0 ${size * 2}px ${color}`,
-        `0 0 ${size * 3}px ${color}`,
-    ].join(",");
+    const { size, color, strength } = createShadow(state.bassIntensity);
+    const shadow = `0 0 ${size}px rgb(${color} / ${strength})`;
 
     if (dateTime.style.textShadow !== shadow) {
         dateTime.style.textShadow = shadow;
@@ -214,7 +191,7 @@ function updateStyles() {
     wall.style.backgroundImage =
         conf.bg === "" ? null : `url('file:///${conf.bg}')`;
     wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
-    dateTime.style.color = conf.dateColor;
+    dateTime.style.color = `rgb(${conf.fgColor.join(" ")})`;
 }
 
 function transformElements(time) {
