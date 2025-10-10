@@ -27,9 +27,21 @@
         "type": "color",
         "value": "0 0 0"
       },
-      "fgShadowColor": {
+      "fgOpacity": {
+        "fraction": true,
         "index": 3,
+        "max": 1,
+        "min": 0,
         "order": 103,
+        "precision": 3,
+        "step": 0.01,
+        "text": "Foreground Opacity",
+        "type": "slider",
+        "value": 0.75
+      },
+      "fgShadowColor": {
+        "index": 4,
+        "order": 104,
         "text": "Shadow Color",
         "type": "color",
         "value": "1 1 1"

@@ -19,7 +19,7 @@ const conf = {
     bgOffsetY: 0,
     fgColor: [0, 0, 0],
     fgShadowColor: [255, 255, 255],
-    barOpacity: 0.75,
+    fgOpacity: 0.75,
     zoomFactor: 0.25,
     rotationFactor: 6,
     rotationSpeedMs: 5000,
@@ -73,6 +73,10 @@ const listener = {
     properties: (props) => {
         if (props.fgColor) {
             conf.fgColor = parseEngineColor(props.fgColor.value);
+        }
+
+        if (props.fgOpacity) {
+            conf.fgOpacity = props.fgOpacity.value;
         }
 
         if (props.fgShadowColor) {
@@ -148,7 +152,7 @@ function updateVisualizer() {
         if (currentHeight > 1) {
             state.hasAudio = true;
             offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
-            offscreenCtx.globalAlpha = conf.barOpacity;
+            offscreenCtx.globalAlpha = conf.fgOpacity;
             const intensity = Math.abs(state.audio[i]);
             const { size, color, strength } = createShadow(intensity);
             offscreenCtx.shadowColor = `rgb(${color} / ${strength})`;
@@ -191,7 +195,7 @@ function updateStyles() {
     wall.style.backgroundImage =
         conf.bg === "" ? null : `url('file:///${conf.bg}')`;
     wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
-    dateTime.style.color = `rgb(${conf.fgColor.join(" ")})`;
+    dateTime.style.color = `rgb(${conf.fgColor.join(" ")} / ${conf.fgOpacity})`;
 }
 
 function transformElements(time) {
