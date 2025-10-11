@@ -200,7 +200,12 @@ function updateStyles() {
 
 function transformElements(time) {
     var scale = state.scale;
-    scale += (1 + state.bassIntensity * conf.zoomFactor - state.scale) * 0.1;
+    if (state.bassIntensity > 0.01) {
+        scale +=
+            (1 + state.bassIntensity * conf.zoomFactor - state.scale) * 0.1;
+    } else {
+        scale = 1;
+    }
 
     if (state.hasAudio) {
         state.lastTime = time;
@@ -219,22 +224,20 @@ function transformElements(time) {
             ((conf.rotationFactor / Math.PI) * 2);
     }
 
-    if (state.hasAudio || state.lastSwingAngle !== 0) {
-        if (scale <= 1) {
-            wall.style.setProperty("--rotate", "0deg");
-        } else {
-            wall.style.setProperty("--rotate", state.lastSwingAngle + "deg");
-            wall.style.setProperty("--scale", scale);
-            state.scale = scale;
-        }
+    if (!state.hasAudio || state.lastSwingAngle == 0) return;
 
-        if (getComputedStyle(dateTime).getPropertyValue("--scale") !== scale) {
-            dateTime.style.setProperty("--scale", scale);
-        }
+    if (scale > 1) {
+        wall.style.setProperty("--rotate", state.lastSwingAngle + "deg");
+        wall.style.setProperty("--scale", scale);
+        state.scale = scale;
+    }
 
-        if (getComputedStyle(vis).getPropertyValue("--scale") !== scale) {
-            vis.style.setProperty("--scale", scale);
-        }
+    if (getComputedStyle(dateTime).getPropertyValue("--scale") !== scale) {
+        dateTime.style.setProperty("--scale", scale);
+    }
+
+    if (getComputedStyle(vis).getPropertyValue("--scale") !== scale) {
+        vis.style.setProperty("--scale", scale);
     }
 }
 
