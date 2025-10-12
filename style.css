@@ -5,6 +5,9 @@
 * {
     transition: transform 0.05s ease-out;
 }
+:root {
+    --wall: url(pgr.webp);
+}
 body {
     display: flex;
     justify-content: center;
