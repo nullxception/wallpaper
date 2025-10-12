@@ -142,7 +142,7 @@ function updateVisualizer() {
                 ? offscreenCtx.currentHeights[i] || 0
                 : 0,
             targetHeight,
-            0.35,
+            0.35
         );
         x += barWidth + spacing;
         if (i < conf.barCount / 4) {
@@ -166,7 +166,7 @@ function updateVisualizer() {
                 vis.height / 2 - currentHeight / 2 + conf.yOffset,
                 barWidth,
                 currentHeight,
-                conf.barRoundness,
+                conf.barRoundness
             );
             offscreenCtx.fill();
         }
@@ -192,8 +192,10 @@ function updateShadow() {
 function updateStyles() {
     vis.width = state.width;
     vis.height = state.height;
-    wall.style.backgroundImage =
-        conf.bg === "" ? null : `url('file:///${conf.bg}')`;
+    document.documentElement.style.setProperty(
+        `--wall`,
+        conf.bg === "" ? null : `url('file:///${conf.bg}')`
+    );
     wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
     dateTime.style.color = `rgb(${conf.fgColor.join(" ")} / ${conf.fgOpacity})`;
 }
@@ -218,7 +220,7 @@ function transformElements(time) {
         state.lastSwingAngle +=
             Math.sin(
                 ((time % conf.rotationSpeedMs) / conf.rotationSpeedMs) *
-                    (2 * Math.PI),
+                    (2 * Math.PI)
             ) *
             (1 / state.fps) *
             ((conf.rotationFactor / Math.PI) * 2);

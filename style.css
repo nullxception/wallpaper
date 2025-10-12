@@ -10,17 +10,21 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #111;
     margin: 0;
     position: relative;
     overflow: hidden;
     flex-direction: column;
+    background-image: var(--wall);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    backdrop-filter: blur(12px);
 }
 #background {
     position: absolute;
     width: 110%;
     height: 110%;
-    background-color: #2f2f2f;
+    background-image: var(--wall);
     background-repeat: no-repeat;
     background-position: center var(--y, "0px");
     background-size: cover;
