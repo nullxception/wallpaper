@@ -2,6 +2,10 @@
 
 An audio-reactive web wallpaper for wallpaper-engine
 
+<a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3585323116">
+    <img width="160" alt="available on steam" src="https://github.com/user-attachments/assets/da229ec9-8f6b-47b4-b987-7a9d6a09a9b6" />
+</a>
+
 # Preview
 
 | Single screen                                                                                 | Dual screen (stacked vertically)                                                              |
