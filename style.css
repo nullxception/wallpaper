@@ -1,12 +1,12 @@
 @font-face {
     font-family: Anurati;
-    src: url("Anurati.otf");
+    src: url("assets/Anurati.otf");
 }
 * {
     transition: transform 0.05s ease-out;
 }
 :root {
-    --wall: url(pgr.webp);
+    --wall: url(assets/default.webp);
 }
 body {
     display: flex;
