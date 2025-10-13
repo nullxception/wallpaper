@@ -20,35 +20,20 @@ const conf = {
     fgColor: [0, 0, 0],
     fgShadowColor: [255, 255, 255],
     fgOpacity: 0.75,
-    zoomFactor: 0.25,
     rotationFactor: 6,
-    rotationSpeedMs: 5000,
-    barCount: 100,
-    barMaxHeight: 600,
+    barHeight: 300,
     barSpacing: 3,
     yOffset: 0,
-    barThickness: 12,
+    barWidth: 12,
     barRoundness: 14,
-    monitorChanges: false,
-};
-
-const equalizerSettings = {
-    band1: 1.0,
-    band2: 1.0,
-    band3: 0.5,
-    band4: 0.2,
-    band5: 0.2,
-    band6: 0.2,
-    band7: 0.2,
-    band8: 0.2,
+    eq: [1.0, 1.0, 0.5, 0.4, 0.3, 0.3, 0.3, 0.3],
 };
 
 const state = {
     fps: 30,
-    audio: [],
-    lastTime: 0,
+    audio: new Float32Array(64).fill(0),
     hasAudio: false,
-    lastSwingAngle: 0,
+    swingAngle: 0,
     bassIntensity: 0,
     last: performance.now() / 1000,
     fpsThreshold: 0,
@@ -65,8 +50,7 @@ function parseEngineColor(color) {
 
 const listener = {
     audio: (samples) => {
-        state.audio = new Array(conf.barCount).fill(0);
-        for (let i = 0; i < conf.barCount; i++) {
+        for (let i = 0; i < 64; i++) {
             state.audio[i] = samples[i] > 0.01 ? samples[i] : 0;
         }
     },
@@ -111,6 +95,17 @@ function updateDate() {
     dateText.textContent = today.toLocaleDateString("en-US", options);
 }
 
+function updateStyles() {
+    vis.width = state.width;
+    vis.height = state.height;
+    document.documentElement.style.setProperty(
+        `--wall`,
+        conf.bg === "" ? null : `url('file:///${conf.bg}')`
+    );
+    wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
+    dateTime.style.color = `rgb(${conf.fgColor.join(" ")} / ${conf.fgOpacity})`;
+}
+
 const ctx = vis.getContext("2d");
 const offscreenCanvas = new OffscreenCanvas(state.width, state.height);
 const offscreenCtx = offscreenCanvas.getContext("2d");
@@ -123,19 +118,21 @@ function createShadow(intensity) {
 }
 
 function updateVisualizer() {
-    const barWidth = conf.barThickness;
-    const spacing = conf.barSpacing;
-    const totalBarsWidth = conf.barCount * (barWidth + spacing) - spacing;
-    let x = (state.width - totalBarsWidth) / 2 + spacing / 2;
+    const bufSize = state.audio.length;
+    const width = bufSize * (conf.barWidth + conf.barSpacing) - conf.barSpacing;
+    let x = (state.width - width) / 2 + conf.barSpacing / 2;
     state.bassIntensity = 0;
     state.hasAudio = false;
-    const segmentSize = conf.barCount / 8;
-    const maxHeight = conf.barMaxHeight;
+    const segmentSize = bufSize / conf.eq.length;
+    const bassSegment = Math.floor(bufSize / 4);
 
-    for (let i = 0; i < conf.barCount; i++) {
-        let eqIndex = Math.floor(i / segmentSize) + 1;
-        let eqFactor = equalizerSettings[`band${eqIndex}`] || 1;
-        let targetHeight = Math.max(state.audio[i] * maxHeight * eqFactor, 0);
+    for (let i = 0; i < bufSize; i++) {
+        let eqIndex = Math.floor(i / segmentSize);
+        let eqFactor = conf.eq[eqIndex] || 1;
+        let targetHeight = Math.max(
+            state.audio[i] * conf.barHeight * eqFactor,
+            0
+        );
 
         let currentHeight = lerp(
             offscreenCtx.currentHeights
@@ -144,8 +141,8 @@ function updateVisualizer() {
             targetHeight,
             0.35
         );
-        x += barWidth + spacing;
-        if (i < conf.barCount / 4) {
+        x += conf.barWidth + conf.barSpacing;
+        if (i < bassSegment) {
             state.bassIntensity += Math.abs(state.audio[i]);
         }
 
@@ -164,7 +161,7 @@ function updateVisualizer() {
             offscreenCtx.roundRect(
                 x,
                 vis.height / 2 - currentHeight / 2 + conf.yOffset,
-                barWidth,
+                conf.barWidth,
                 currentHeight,
                 conf.barRoundness
             );
@@ -173,14 +170,16 @@ function updateVisualizer() {
 
         // Store the current height for the next frame
         if (!offscreenCtx.currentHeights) {
-            offscreenCtx.currentHeights = [];
+            offscreenCtx.currentHeights = new Float32Array(bufSize);
         }
         offscreenCtx.currentHeights[i] = currentHeight;
     }
-    state.bassIntensity /= conf.barCount / 4;
+    state.bassIntensity /= bassSegment;
 }
 
 function updateShadow() {
+    if (!state.hasAudio) return;
+
     const { size, color, strength } = createShadow(state.bassIntensity);
     const shadow = `0 0 ${size}px rgb(${color} / ${strength})`;
 
@@ -189,58 +188,30 @@ function updateShadow() {
     }
 }
 
-function updateStyles() {
-    vis.width = state.width;
-    vis.height = state.height;
-    document.documentElement.style.setProperty(
-        `--wall`,
-        conf.bg === "" ? null : `url('file:///${conf.bg}')`
-    );
-    wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
-    dateTime.style.color = `rgb(${conf.fgColor.join(" ")} / ${conf.fgOpacity})`;
-}
-
 function transformElements(time) {
-    var scale = state.scale;
-    if (state.bassIntensity > 0.01) {
-        scale +=
-            (1 + state.bassIntensity * conf.zoomFactor - state.scale) * 0.1;
-    } else {
-        scale = 1;
-    }
+    if (!state.hasAudio) return;
 
-    if (state.hasAudio) {
-        state.lastTime = time;
-        if (state.lastSwingAngle < 0) {
-            state.lastSwingAngle = 0;
-        } else if (state.lastSwingAngle > conf.rotationFactor) {
-            state.lastSwingAngle = conf.rotationFactor;
-        }
+    state.swingAngle = Math.min(
+        Math.max(state.swingAngle, 0),
+        conf.rotationFactor
+    );
+    let speed = 5000;
+    state.swingAngle +=
+        Math.sin(((time % speed) / speed) * (2 * Math.PI)) *
+        (1 / state.fps) *
+        ((conf.rotationFactor / Math.PI) * 2);
+    wall.style.setProperty("--rotate", state.swingAngle.toFixed(3) + "deg");
 
-        state.lastSwingAngle +=
-            Math.sin(
-                ((time % conf.rotationSpeedMs) / conf.rotationSpeedMs) *
-                    (2 * Math.PI)
-            ) *
-            (1 / state.fps) *
-            ((conf.rotationFactor / Math.PI) * 2);
-    }
+    state.scale = Number(
+        lerp(state.scale, 1 + state.bassIntensity * 0.15, 0.1).toFixed(3)
+    );
+    wall.style.setProperty("--scale", state.scale);
 
-    if (!state.hasAudio || state.lastSwingAngle == 0) return;
+    if (getComputedStyle(dateTime).getPropertyValue("--scale") !== state.scale)
+        dateTime.style.setProperty("--scale", state.scale);
 
-    if (scale > 1) {
-        wall.style.setProperty("--rotate", state.lastSwingAngle + "deg");
-        wall.style.setProperty("--scale", scale);
-        state.scale = scale;
-    }
-
-    if (getComputedStyle(dateTime).getPropertyValue("--scale") !== scale) {
-        dateTime.style.setProperty("--scale", scale);
-    }
-
-    if (getComputedStyle(vis).getPropertyValue("--scale") !== scale) {
-        vis.style.setProperty("--scale", scale);
-    }
+    if (getComputedStyle(vis).getPropertyValue("--scale") !== state.scale)
+        vis.style.setProperty("--scale", state.scale);
 }
 
 function draw(time) {
@@ -252,10 +223,11 @@ function draw(time) {
 
     if (state.fps > 0) {
         state.fpsThreshold += dt;
-        if (state.fpsThreshold < 1.0 / state.fps) {
+        let frameDuration = 1.0 / state.fps;
+        if (state.fpsThreshold < frameDuration) {
             return;
         }
-        state.fpsThreshold -= 1.0 / state.fps;
+        state.fpsThreshold -= frameDuration;
     }
 
     offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);

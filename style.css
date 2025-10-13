@@ -2,9 +2,6 @@
     font-family: Anurati;
     src: url("assets/Anurati.otf");
 }
-* {
-    transition: transform 0.05s ease-out;
-}
 :root {
     --wall: url(assets/default.webp);
 }
