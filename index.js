@@ -123,10 +123,19 @@ function updateVisualizer() {
     const bufSize = state.audio.length;
     const width = bufSize * (conf.barWidth + conf.barSpacing) - conf.barSpacing;
     let x = (state.width - width) / 2 + conf.barSpacing / 2;
-    state.bassIntensity = 0;
     const segmentSize = bufSize / conf.eq.length;
     const bassSegment = Math.floor(bufSize / 4);
 
+    // use previous bass intensity for shadow
+    const { size, color, strength } = createShadow(state.bassIntensity);
+    offscreenCtx.shadowOffsetX = 0;
+    offscreenCtx.shadowOffsetY = 0;
+    offscreenCtx.shadowColor = `rgb(${color} / ${strength})`;
+    offscreenCtx.shadowBlur = size;
+    offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
+    offscreenCtx.globalAlpha = conf.fgOpacity;
+
+    state.bassIntensity = 0;
     for (let i = 0; i < bufSize; i++) {
         let eqIndex = Math.floor(i / segmentSize);
         let eqFactor = conf.eq[eqIndex] || 1;
@@ -148,15 +157,6 @@ function updateVisualizer() {
         }
 
         if (currentHeight > 1) {
-            offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
-            offscreenCtx.globalAlpha = conf.fgOpacity;
-            const intensity = Math.abs(state.audio[i]);
-            const { size, color, strength } = createShadow(intensity);
-            offscreenCtx.shadowColor = `rgb(${color} / ${strength})`;
-            offscreenCtx.shadowOffsetX = 0;
-            offscreenCtx.shadowOffsetY = 0;
-            offscreenCtx.shadowBlur = size;
-
             offscreenCtx.beginPath();
             offscreenCtx.roundRect(
                 x,
