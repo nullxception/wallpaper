@@ -41,6 +41,7 @@ const state = {
     date: null,
     width: window.innerWidth,
     height: window.innerHeight,
+    frameCount: 0,
 };
 
 function parseEngineColor(color) {
@@ -178,7 +179,7 @@ function updateVisualizer() {
 }
 
 function updateShadow() {
-    if (!state.hasAudio) return;
+    if (!state.hasAudio || state.frameCount % 3 !== 0) return;
     const { size, color, strength } = createShadow(state.bassIntensity);
     const shadow = `0 0 ${size}px rgb(${color} / ${strength})`;
 
@@ -225,6 +226,7 @@ function draw(time) {
         state.fpsThreshold -= frameDuration;
     }
 
+    state.frameCount = state.frameCount > state.fps ? 0 : state.frameCount + 1;
     offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
     updateVisualizer();
     transformElements(time);
