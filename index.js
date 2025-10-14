@@ -50,6 +50,8 @@ function parseEngineColor(color) {
 
 const listener = {
     audio: (samples) => {
+        state.hasAudio = samples.some((it) => it > 0.01);
+
         for (let i = 0; i < 64; i++) {
             state.audio[i] = samples[i] > 0.01 ? samples[i] : 0;
         }
@@ -122,7 +124,6 @@ function updateVisualizer() {
     const width = bufSize * (conf.barWidth + conf.barSpacing) - conf.barSpacing;
     let x = (state.width - width) / 2 + conf.barSpacing / 2;
     state.bassIntensity = 0;
-    state.hasAudio = false;
     const segmentSize = bufSize / conf.eq.length;
     const bassSegment = Math.floor(bufSize / 4);
 
@@ -147,7 +148,6 @@ function updateVisualizer() {
         }
 
         if (currentHeight > 1) {
-            state.hasAudio = true;
             offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
             offscreenCtx.globalAlpha = conf.fgOpacity;
             const intensity = Math.abs(state.audio[i]);
