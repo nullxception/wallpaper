@@ -191,19 +191,15 @@ function updateShadow() {
 function transformElements(time) {
     if (!state.hasAudio) return;
 
-    state.swingAngle = Math.min(
-        Math.max(state.swingAngle, 0),
-        conf.rotationFactor
-    );
-    let speed = 5000;
-    state.swingAngle +=
-        Math.sin(((time % speed) / speed) * (2 * Math.PI)) *
-        (1 / state.fps) *
-        ((conf.rotationFactor / Math.PI) * 2);
+    const speed = 5000;
+    const normalize = (time % speed) / speed;
+    const remap = Math.sin(normalize * 2 * Math.PI) * 0.5 + 0.5;
+    const swing = remap * conf.rotationFactor;
+    state.swingAngle = swing;
     wall.style.setProperty("--rotate", state.swingAngle.toFixed(3) + "deg");
 
     state.scale = Number(
-        lerp(state.scale, 1 + state.bassIntensity * 0.15, 0.1).toFixed(3)
+        lerp(state.scale, 1 + state.bassIntensity * 0.15, 0.06).toFixed(3)
     );
     wall.style.setProperty("--scale", state.scale);
 
