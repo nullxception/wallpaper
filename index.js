@@ -202,12 +202,8 @@ function transformElements(time) {
         lerp(state.scale, 1 + state.bassIntensity * 0.15, 0.06).toFixed(3)
     );
     wall.style.setProperty("--scale", state.scale);
-
-    if (getComputedStyle(dateTime).getPropertyValue("--scale") !== state.scale)
-        dateTime.style.setProperty("--scale", state.scale);
-
-    if (getComputedStyle(vis).getPropertyValue("--scale") !== state.scale)
-        vis.style.setProperty("--scale", state.scale);
+    dateTime.style.setProperty("--scale", state.scale);
+    vis.style.setProperty("--scale", state.scale);
 }
 
 function draw(time) {
