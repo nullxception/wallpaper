@@ -106,11 +106,15 @@ function updateStyles() {
     );
     wall.style.setProperty(`--y`, conf.bgOffsetY + `px`);
     dateTime.style.color = `rgb(${conf.fgColor.join(" ")} / ${conf.fgOpacity})`;
+    offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
+    offscreenCtx.globalAlpha = conf.fgOpacity;
 }
 
 const ctx = vis.getContext("2d");
 const offscreenCanvas = new OffscreenCanvas(state.width, state.height);
 const offscreenCtx = offscreenCanvas.getContext("2d");
+offscreenCtx.shadowOffsetX = 0;
+offscreenCtx.shadowOffsetY = 0;
 
 function createShadow(intensity) {
     const strength = Math.min(intensity * 2, 1);
@@ -128,12 +132,8 @@ function updateVisualizer() {
 
     // use previous bass intensity for shadow
     const { size, color, strength } = createShadow(state.bassIntensity);
-    offscreenCtx.shadowOffsetX = 0;
-    offscreenCtx.shadowOffsetY = 0;
     offscreenCtx.shadowColor = `rgb(${color} / ${strength})`;
     offscreenCtx.shadowBlur = size;
-    offscreenCtx.fillStyle = `rgb(${conf.fgColor.join(" ")})`;
-    offscreenCtx.globalAlpha = conf.fgOpacity;
 
     state.bassIntensity = 0;
     for (let i = 0; i < bufSize; i++) {
@@ -179,7 +179,6 @@ function updateVisualizer() {
 
 function updateShadow() {
     if (!state.hasAudio) return;
-
     const { size, color, strength } = createShadow(state.bassIntensity);
     const shadow = `0 0 ${size}px rgb(${color} / ${strength})`;
 
