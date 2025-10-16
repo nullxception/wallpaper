@@ -42,6 +42,7 @@ const state = {
     width: window.innerWidth,
     height: window.innerHeight,
     frameCount: 0,
+    isPaused: false,
 };
 
 function parseEngineColor(color) {
@@ -51,8 +52,9 @@ function parseEngineColor(color) {
 
 const listener = {
     audio: (samples) => {
-        state.hasAudio = samples.some((it) => it > 0.01);
+        if (state.isPaused) return;
 
+        state.hasAudio = samples.some((it) => it > 0.01);
         for (let i = 0; i < 64; i++) {
             state.audio[i] = samples[i] > 0.01 ? samples[i] : 0;
         }
@@ -195,7 +197,7 @@ function transformElements(time) {
     const normalize = (time % speed) / speed;
     const remap = Math.sin(normalize * 2 * Math.PI) * 0.5 + 0.5;
     const swing = remap * conf.rotationFactor;
-    state.swingAngle = swing;
+    state.swingAngle = lerp(state.swingAngle, swing, 0.1);
     wall.style.setProperty("--rotate", state.swingAngle.toFixed(3) + "deg");
 
     state.scale = Number(
@@ -208,6 +210,7 @@ function transformElements(time) {
 
 function draw(time) {
     requestAnimationFrame(draw);
+    if (state.isPaused) return;
 
     const now = performance.now() / 1000;
     const dt = Math.min(now - state.last, 1);
@@ -239,7 +242,13 @@ window.wallpaperPropertyListener = {
         }
     },
     setPaused: (isPaused) => {
+        state.isPaused = isPaused;
         vis.style.visibility = isPaused ? "hidden" : "visible";
+        if (isPaused) {
+            pauseBtn.innerHTML = "&#9658;";
+        } else {
+            pauseBtn.innerHTML = "&#10074;&#10074;";
+        }
     },
     applyUserProperties: listener.properties,
 };
@@ -250,3 +259,9 @@ updateDate();
 updateStyles();
 requestAnimationFrame(draw);
 setInterval(updateDate, 60000);
+
+const pauseBtn = document.getElementById("pauseBtn");
+pauseBtn.innerHTML = "&#10074;&#10074;";
+pauseBtn.onclick = () => {
+    window.wallpaperPropertyListener.setPaused(!state.isPaused);
+};

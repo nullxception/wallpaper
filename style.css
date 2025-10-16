@@ -82,3 +82,22 @@ body {
         rgba(0, 0, 0, 0.5) 100%
     );
 }
+#pauseBtn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    text-align: center;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
+    color: white;
+    border: none;
+    opacity: 0;
+    transition: all .3s ease-in-out;
+}
+#pauseBtn:hover {
+    opacity: 1;
+}
